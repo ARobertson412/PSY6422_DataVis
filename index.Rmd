@@ -1,6 +1,7 @@
 ---
 title: "Index"
 author: "Annie Robertson"
+date: 01/05/2022
 output: 
   html_document:
     toc: true
@@ -342,7 +343,7 @@ The interactive plot is really useful for this data due to how clustered it is i
 Visualisation 1 produced a very clear graph presenting the broad trends of the entire data set. However, this also meant that the outliers (Wii Sports) had a significant influence on the overall picture presented. The reality is that a majority of games do not reach 1 million copies sold, so the steep increase towards the higher review scores on this graph is misleading. 
 The joint scatter-histogram plot made for visualisation 2 gave a good indication of how sales and reviews related to one another, as well as information about the distribution of the data set. Whilst this plot is arguably 'messier', I think it provides a better understanding of the data. It shows a subset of the data which represents a majority of games, opposed to visualisation 1 which was misleading due to the pull of outliers. 
 
-The interactive plot is a good addition as well, as it allows for looking at clusters and outliers more easily than a static plot is able to, given the sheer number of data points plotted. Being able to see the global sale figure and review score for an individual game at a glance is also a benefit to these types of interactive plots. 
+The interactive plot is a good addition as well, as it allows for looking at clusters and outliers more easily than a static plot is able to, given the sheer number of data points plotted. Being able to see the global sale figures and review score for an individual game at a glance is also a benefit to these types of interactive plots. 
 
 # Future Visualisations
 
