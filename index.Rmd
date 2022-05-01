@@ -1,0 +1,394 @@
+---
+title: "Do Video Game Ratings Predict Sales?"
+author: "Annie Robertson"
+output: 
+  html_document:
+    toc: true
+    theme: yeti
+---
+
+![ ](images/gaming.jpg)
+
+# Background
+
+<font size = "3"> 
+
+The video game sector is currently one of the biggest entertainment industries and, as of 2019, is thought to be worth [over $145 billion dollars](https://www.statista.com/chart/22392/global-revenue-of-selected-entertainment-industry-sectors/). As the gaming industry has grown, so too has the sheer number of games available for consumers to choose from. With so much choice, the opinions and reviews by games critics is often sought after by many people who engage in gaming as a hobby, especially as these reviews are usually available prior to a games release. Many of the more popular review websites for media allows for general users to publish their own reviews as well. Logically, it makes sense to assume that good games will be reviewed more highly and therefore sell better than bad games with poorer review scores. As such, this project sought to examine whether this assumption is true or not.  
+
+</font>
+
+# Research Question
+
+<font size = "4">
+
+* Does the review score for a game have any relationship to how well it sold? 
+
+</font>
+
+# Data Origins. 
+
+<font size = "3"> 
+
+The data used here was published by Rush Kirubi and can be accessed and downloaded on [Kaggle](https://www.kaggle.com/datasets/rush4ratio/video-game-sales-with-ratings). To create this data set, data was scraped from two websites in 2016:
+
+* [Metacritic](https://www.metacritic.com/browse/games/release-date/available), a website which contains rating scores from critics and users. 
+* [VGChartz](https://www.vgchartz.com/), a website containing the regional and global sale numbers for games. 
+
+Unfortunately, the original web scraping code which created this data set no longer works following structural changes of the metacritic and VGChartz websites, and has been removed from Kaggle as a result. I was therefore unable to create a more up to date version of this data set. However, despite not being up to date, the completed data set from 2016 is still sufficient for answering my research question. 
+
+</font>
+
+# Data Preparation
+
+<font size = "3"> 
+
+This data contains 16 variables, the explanations for which are explained in the below table. These explanations can also be found in my code book in the GitHub repository. 
+
+</font>
+
+Variable Name   | Meaning
+----------------|-------------
+Name            | The name of the game
+Platform        | Which console of platform the game was released on
+Year_of_Release | The year in which the game was released
+Genre           | The genre of the game
+Publisher       | The name of the company which published the game
+NA_Sales        | The number of copies of a game sold in North America (in millions)
+EU_Sales        | The number of copies of a game sold in Europe (in millions)
+JP_Sales        | The number of copies of a game sold in Japan (in millions)
+Global_Sales    | The number of copies of a game sold globally (in millions)
+Critic_Score    | The average review score given by video game critics on a scale of 0-100
+Critic_Count    | The number of critics who gave a review score for a game
+User_Score      | The average review score given by general users of the metacritic website on a scale of 0-10
+User_Count      | The number of general users who gave review scores for a game
+Developer       | The name of the company which developed the game
+Rating          | The [ESRB](https://www.esrb.org/) rating for a game
+
+<font size = "3"> 
+
+Firstly, I had to check the data was able to load and display correct in R. Observing the first few lines of the data let me know whether the data had loaded in properly or not. 
+
+</font>
+
+```{r message = FALSE, warning = FALSE}
+
+#Load the necessary packages for the code
+library(here)
+library(tidyverse)
+library(ggExtra)
+library(dplyr)
+library(plotly)
+
+#Load the data into the workspace
+Data <- read.csv(here("Data", "VideoGameSales2016.csv"))
+
+#Check the data loaded correctly
+head(Data)
+
+```
+
+<font size = "3"> 
+
+I then decided to create a new dataframe which only contained a subset of these variables so it would be more straightforward to work with and manipulate the data as needed whilst also leaving the original data intact. The following code created a new dataframe containing the Name, Global_Sales, Critic_Score and User_Score columns using the cbind feature in the dplyr package and prints the first few instances of data. 
+
+</font>
+
+```{r}
+
+#Create new dataframe containing the Name, Critic_Score, User_Score and Global_Sales columns
+Data2 <- cbind(Data[c("Name", "Global_Sales","Critic_Score", "User_Score")])
+
+#Check it has loaded using the head() function
+head(Data2)
+
+```
+
+<font size = "3">
+
+Once the data was loaded in correctly, it was important to go through a number of checks to see how the data was formatted within R. Firstly, I checked what data type the Critic_Score and User_Score columns were in. Although straightforward, this was an important step because I knew that both of these variables would need to be the same type in order to combine into a single score. Critic_score was automatically stored as integer, and User_score was stored as character data. The code to convert these variables into the same type of data is shown below. 
+
+</font>
+
+```{r eval=FALSE}
+
+#Check what class of data Critic and User scores are stored as 
+class(Data2$Critic_Score)
+class(Data2$User_Score)
+
+```
+```{r warning = FALSE}
+
+#Convert both user and critic scores to numeric
+Data2$Critic_Score <- as.numeric(Data2$Critic_Score)
+Data2$User_Score <- as.numeric(Data2$User_Score) #This flags a warning in R, but can be ignored
+
+```
+
+<font size = "3"> 
+
+I also checked for the number of complete cases of both the Critic_Score and User_Score variables, as I was aware that the metacritic website does not contain information for certain older platforms such as the SNES. As such, I expected there would be a number of missing cases for these variables in the data set.
+
+</font>
+
+```{r}
+
+#Check the number of complete cases which have values for critic and user score together
+length(na.omit(Data2$Critic_Score & Data2$User_Score))
+
+```
+
+## Preparing the dataset. 
+
+<font size = "3"> 
+
+In order to combine Critic_Score and User_Score, it was necessary to convert these to the same scale. In the default data set, critic scores are ranked on a scale of 0-100, whilst user scores are ranked on a scale of 0-10. I decided it would be more appropriate to convert the User_Score into a 0-100 scale, rather than converting the Critic_Score to a 0-10 scale. I thought it would be easier to visualize these ratings if they were all on a scale of 0-100 rather than a 0-10 scale. A 0-100 scale also felt more intuitive to understand.  
+To do this, the mutate function was used to multiply every valid User_Score by 10. For example, a score of 8 would be converted into a score of 80. 
+Following this, I created another variable in my data set which contained the overall review score for a game. For this, I averaged both the Critic_Score and User_Score and added the result as a new variable.
+
+</font>
+
+```{r}
+
+#Convert the User_Score values into the same scale as the Critic_Score
+Data2 <- Data2 %>%
+  mutate(User_Score = User_Score * 10)
+
+#Create a new variable containing the average review score of critics and users for a given game
+Data2$Overall_Score <- (Data2$User_Score + Data2$Critic_Score) / 2
+
+#Display first few rows of edited dataset
+head(Data2)
+
+```
+
+# Visualisation 1
+
+<font size= "3">
+
+For my first graph I decided to create a smoothed line graph. I decided to smooth the data so it would be easier to interpret overall trends and get a better overall idea of the data set. 
+
+</font>
+
+```{r message = FALSE}
+
+#Create a smoothed line graph of review scores and global sale figures
+g <- ggplot(data = na.omit(subset(Data2, Overall_Score >20 & Overall_Score <95)), aes(x = Data2$Overall_Score, y = Data2$Global_Sales))
+g2 <- g + geom_smooth(aes(x = Overall_Score, y = Global_Sales), method = "loess",colour = 'darkred', size = .7, se = FALSE) +
+  #Limit xaxis
+  xlim(0, 100)+
+  #Create title and axis labels
+  labs(x = "Review Score", y = "Global sales (units/millions)", title = "Game Review Scores and Global Sales")+
+  #Specify title text size and location
+  theme(plot.title = element_text(size = 12, face = 'bold', hjust = 0.5))+
+  #Change axis text
+  theme(axis.text = element_text(color = 'black', size = 6))+
+  #Change background to white
+  theme(panel.background = element_rect(fill = 'white'))
+
+#View graph
+g2
+
+```
+
+## Visualisation 1 Summary
+
+<font size = "3">
+
+This graph gives a very clear indication of the trends of this data set. It shows that as review score increases, so does global sales. The main issue I had with this graph was that, when examining the first few lines of the data earlier I had noted some games (such as Wii Sports) had global sales as high as 82.53 million global sales. This made me suspicious that some outliers may have had a heavy influence on the trends being observed here. I therefore decided to make a different plot to see if I was able to visualise trends which were more representative of the gaming industry in general. 
+
+</font>
+
+# Visualisation 2
+
+<font size = "3">
+
+After suspecting that visualisation 1 was being heavily influenced by outliers, I decided that a joint plot would be a more appropriate way to answer my question. A scatterplot would allow me to observe the review scores for each individual case, and compare it to how many units (in millions) were sold globally. The histogram would give me an indication of how the data is distributed overall. After looking at the first few instances of data from using the head command, I knew there were some outliers in terms of global sale figures. To create this joint plot, I used the ggExtra package, which is able to create graphs similarly to those which can be created from the [Seaborn](https://seaborn.pydata.org/) library in python.
+
+</font>
+
+```{r warning = FALSE}
+
+#Create a joint scatter and histogram plot using the ggExtra package
+#This compared the global unit sales of a game with the overall review score
+#Specify dataframe and axes
+plot_center = ggplot(Data2, aes(x = Overall_Score, y = Global_Sales))+ 
+  #Create scatterplot and specify point colour and size
+  geom_point(color = 'darkred', alpha = .3, size = .8, stroke = 0)+ 
+    #Create title and axis labels
+    labs(x = "Review Score", y = "Global sales (units/millions)", title = "Game Review Scores and Global Sales")+
+    #Specify title text size and location
+    theme(plot.title = element_text(size = 12, face = 'bold', hjust = 0.5))+
+    #Change axis text
+    theme(axis.text = element_text(color = 'black', size = 6))+
+    #Change background to white
+    theme(panel.background = element_rect(fill = 'white'))
+ggMarginal(plot_center, type = "histogram", 
+                          color = 'black', fill = 'darkred')
+
+```
+
+<font size = "3">
+
+The first iteration of this plot is near impossible to interpret due to high clusters of data below 2 million global sales, and some outliers with incredibly high global sales (Wii Sports was the biggest culprit here). I therefore decided to run some code to check the range, mean and standard deviation of my global sale data. Based on the results of this, it made sense to recreate the initial visualization with more sensible boundaries, so the pattern and distribution of the data could be better identified. 
+
+</font>
+
+## Refining Visualisation 2
+
+```{r eval = FALSE}
+
+#Examining the range, mean and SD of the global sale data
+range(Data2$Global_Sales)
+mean(Data2$Global_Sales)
+sd(Data2$Global_Sales)
+
+```
+```{r}
+
+#Determining the average +/- 1SD to set the axis limits on future graphs
+mean(Data2$Global_Sales)+sd(Data2$Global_Sales)
+
+```
+
+<font size = "3"> 
+
+After identifying how my data was distributed, I decided to restrict my axes. I decided that the average +/- 1 standard deviation would be an appropriate way to restrict the global sales data. Consequently, only games which had less than 2.1 million sales were included in the final visualization. 
+
+</font>
+
+```{r warning = FALSE}
+
+#Joint plot as above, restricting shown data to global sales less than 2.1 million units
+plot_center = ggplot(data = subset(Data2, Global_Sales < 2.1), aes(x = Overall_Score, y = Global_Sales))+ 
+  #Create scatterplot and specify point colour and size
+  geom_point(color = 'darkred', alpha = .3, size = .8, stroke = 0)+ 
+    #Create title and axis labels
+    labs(x = "Review Score", y = "Global sales (units/millions)", title = "Game Review Scores and Global Sales")+
+    #Specify title text size and location
+    theme(plot.title = element_text(size = 12, face = 'bold', hjust = 0.5))+
+    #Change axis text
+    theme(axis.text = element_text(color = 'black', size = 6))+
+    #Change background to white
+    theme(panel.background = element_rect(fill = 'white'))
+ggMarginal(plot_center, type = "histogram", 
+                          color = 'black', fill = 'darkred')
+
+```
+
+## Visualisation 2 Summary
+
+<font size = "3">
+
+This visualization highlights the spread of the data very well. It also shows that games with higher scores are more likely to sell well than games with very low review scores. However, the histogram highlights that although a majority of games scored around 80 on their review score, most did not sell more than 200,000 copies. This is interesting, as it suggests that just because a game is received well, it does not guarantee it will sell well. In fact, there does seem to be a slight drop off in sale figures for games which receive very high review scores, but it is difficult to acertain why this is the case based on the data available. 
+
+</font>
+
+# Interactive visualisation 
+
+<font size = "3">
+
+Lastly, I decided to create an interactive plot of this data. Although the above graphs were able to answer my research question, I thought it would be interesting to see whether I could create a graph which could allow for the inspection of individual outliers or specific clusters of points. As the relationship between review scores and global sale figures does not appear to be especially strong, I think this is a good way of looking at areas of the data, especially when looking at surprising individual cases (Wii Sports is, again, a great example for this). 
+
+</font>
+
+```{r warning = FALSE}
+
+#Create an interactive scatterplot of the overall/user/critic vs global sales
+intplot <- plot_ly(data = Data2, x = Data2$Overall_Score, y = Data2$Global_Sales, 
+                   #Add hover labels to individual points on the plot
+                   text = ~paste("Review Score: ", Data2$Overall_Score, 
+                                 "<br>Global Sales: ", Data2$Global_Sales, 
+                                 "<br>Game: ", Data2$Name), 
+                          hoverinfo = "text",
+            #Specify type of plot
+            type = "scatter", mode = "markers", 
+            #Specify point aesthetics
+            marker = list(size = 4,
+                          color = 'rgba(170, 30, 15, .7)',
+                          line = list(color = 'rgba(100, 30, 15, .7)',
+                                      width = 1)))
+#Add title and axis labels
+intplot <- intplot %>%
+  layout(title = "Global Sales and Review Scores",
+         xaxis = list(title = "Review Score", range = c(0, 100)),
+         yaxis = list(title = "Global Sales (per million units)", range = c(0, 85)),
+         font = list(color = '#21130d',
+                     size = 14))
+#Format graph background
+intplot <- intplot %>%
+  layout(plot_bgcolor = 'rgb(254, 254, 254)') %>%
+  layout(paper_bgcolor = 'rgb(254, 254, 254)') %>%
+  layout(xaxis = list(showgrid = FALSE),
+         yaxis = list(showgrid = FALSE)) %>%
+  layout(margin = list(b = 50, l = 50, r = 50, t = 50))
+
+#Display plot
+intplot
+
+```
+
+<font size = "3">
+
+The interactive plot is really useful for this data due to how clustered it is in certain areas. It allows for an overall view of the data, as well as for a close inspection of clustered areas. The ability to hover over points and see the global sale number, review score, and name of the game is really beneficial when looking at individual points where data has clustered. Originally, I had also included the publisher information in the hover points as I suspected certain publishers would be behind some of the outliers. I decided to remove this for the final iteration of the interactive plot because it looked quite cluttered and this information was not available for every point on the plot so was inconsistent. Nevertheless, the Plotly package used to create this, is an excellent tool for data visualization. 
+
+</font>
+
+# Conclusion
+
+<font size = "3">
+
+Visualisation 1 produced a very clear graph presenting the broad trends of the entire data set. However, this also meant that the outliers (Wii Sports) had a significant influence on the overall picture presented. The reality is that a majority of games do not reach 1 million copies sold, so the steep increase towards the higher review scores on this graph is misleading. 
+The joint scatter-histogram plot made for visualisation 2 gave a good indication of how sales and reviews related to one another, as well as information about the distribution of the data set. Whilst this plot is arguably 'messier', I think it provides a better understanding of the data. It shows a subset of the data which represents a majority of games, opposed to visualisation 1 which was misleading due to the pull of outliers. 
+
+The interactive plot is a good addition as well, as it allows for looking at clusters and outliers more easily than a static plot is able to, given the sheer number of data points plotted. Being able to see the global sale figure and review score for an individual game at a glance is also a benefit to these types of interactive plots. 
+
+# Future Visualisations
+
+If a more up to date data set could be obtained, it would be interesting to see whether these trends (or lack thereof) have changed as a result of the Coronavirus pandemic of 2020. Following repeated lock downs, the gaming hobby has seen a surge in popularity over the past two years, as well as the release of some highly anticipated games, such as Animal Crossing: New Horizons and Elden Ring. This data set will also be missing games from more recent consoles such as the Nintendo Switch, which saw a boom in sales following the pandemic.
+It may also be interesting to examine these trends on a publisher-by-publisher basis to see whether different companies see different relationships between review scores and global sale figures. A brief look at this data set certainly suggests that Nintendo are likely to see particularly high global sale figures for their large IPs (such as Mario, or Wii Sports spin-offs).
+
+</font>
+
+# Extra Animated plot
+
+<font size = "3">
+
+One of the things I wanted to learn to do as part of this module was to animate graphs. Ultimately, this was not the most appropriate way to show off the data I had obtained, but I attempted it nevertheless. The [gganimate](https://gganimate.com/) package is a fun tool to animate plots. One of the major issues I had with this package for my data was that because of the size of my data set, my current hardware was unable to process particularly large animations without failing and crashing. The solution for this was to restrict the number of frames and the duration of the animation, but this did result in a very jerky plot animation shown below.
+
+</font>
+
+```{r message = FALSE, warning = FALSE}
+
+library(gganimate)
+library(gifski)
+
+#Smooth line graph of review scores and global sale figures
+g <- ggplot(data = na.omit(subset(Data2, Overall_Score >20 & Overall_Score <90)), aes(x = Data2$Overall_Score, y = Data2$Global_Sales))
+g2 <- g + geom_smooth(aes(x = Overall_Score, y = Global_Sales), method = "loess",colour = 'darkred', size = .7, se = FALSE) +
+  #Limit xaxis
+  xlim(0, 100)+
+  #Create title and axis labels
+  labs(x = "Review Score", y = "Global sales (units/millions)", title = "Game Review Scores and Global Sales")+
+  #Specify title text size and location
+  theme(plot.title = element_text(size = 12, face = 'bold', hjust = 0.5))+
+  #Change axis text
+  theme(axis.text = element_text(color = 'black', size = 6))+
+  #Change background to white
+  theme(panel.background = element_rect(fill = 'white'))
+
+#Animate the above plot
+anim <- g2 +
+  transition_reveal(Overall_Score)
+
+#View animation
+animate(anim, nframes = 35, duration = 7)
+
+```
+
+# References
+
+<font size = "3"> 
+
+The GitHub repository containing all the code and resources used for this project can be found [here](https://github.com/ARobertson412/PSY6422_DataVis.git). 
+
+</font>
