@@ -1,11 +1,13 @@
 ---
-title: "Do Video Game Ratings Predict Sales?"
+title: "Index"
 author: "Annie Robertson"
 output: 
   html_document:
     toc: true
     theme: yeti
 ---
+
+# **Do Video Game Ratings Predict Sales?**
 
 ![ ](images/gaming.jpg)
 
