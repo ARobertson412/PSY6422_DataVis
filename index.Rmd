@@ -387,10 +387,10 @@ animate(anim, nframes = 35, duration = 7)
 
 ```
 
-# References
+# Resources
 
-<font size = "3"> 
+<font size = "2"> 
 
-The GitHub repository containing all the code and resources used for this project can be found [here](https://github.com/ARobertson412/PSY6422_DataVis.git). 
+* The GitHub repository containing all the code and resources used for this project can be found [here](https://github.com/ARobertson412/PSY6422_DataVis.git). 
 
 </font>
