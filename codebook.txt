@@ -1,0 +1,20 @@
+The data used in this project was acquired from: https://www.kaggle.com/datasets/rush4ratio/video-game-sales-with-ratings
+
+A copy of this data is also available in my GitHub repository: https://github.com/ARobertson412/PSY6422_DataVis
+
+The variables in this data set are stored as follows:
+Name		--> Name of the game
+Platform	--> Name of the platform the game was released on 
+Year_of_Release --> The year in which the game was initially released
+Genre		--> The genre of the game
+Publisher	--> Name of the company which published the game
+NA_Sales	--> Number of copies of a game which sold in the North Americas (in millions)
+EU_Sales	--> Number of copies of a game which sold in Europe (in millions)
+JP_Sales	--> Number of copies of a game which sold in Japan (in millions)
+Global_Sales	--> Number of copies of a game which sold worldwide (in millions)
+Critic_Score	--> Average review score a game received from games critics on a scale of 0-100
+Critic_Count	--> The number of critics who published a review score for a game
+User_Score	--> Average review score of a game received from users of the metacritic website on a scale of 0-10
+User_Count	--> The number of users who published a review score for a game
+Developer 	--> The name of the company which produced a game
+Rating 		--> The ESRB rating of a game
